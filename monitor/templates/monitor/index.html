@@ -2,27 +2,46 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ServerMonitor</title>
 </head>
 <body>
+
     <h1>ServerMonitor</h1>
 
     <h2>System Overview</h2>
 
     <section>
         <h3>CPU Usage</h3>
-        <p>Waiting for monitoring data...</p>
+        <p>{{ system_info.cpu }} %</p>
     </section>
 
     <section>
         <h3>Memory Usage</h3>
-        <p>Waiting for monitoring data...</p>
+        <p>
+            {{ system_info.memory.used }} GB /
+            {{ system_info.memory.total }} GB
+        </p>
+        <p>{{ system_info.memory.percent }} %</p>
     </section>
 
     <section>
         <h3>Disk Usage</h3>
-        <p>Waiting for monitoring data...</p>
+        <p>
+            {{ system_info.disk.used }} GB /
+            {{ system_info.disk.total }} GB
+        </p>
+        <p>{{ system_info.disk.percent }} %</p>
     </section>
+
+    <section>
+        <h3>Network</h3>
+        <p>
+            Sent: {{ system_info.network.bytes_sent }} bytes
+        </p>
+        <p>
+            Received: {{ system_info.network.bytes_recv }} bytes
+        </p>
+    </section>
+
 </body>
 </html>
