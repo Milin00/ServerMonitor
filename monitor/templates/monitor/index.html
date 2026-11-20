@@ -1,9 +1,13 @@
+
+{% load static %}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ServerMonitor</title>
 </head>
+
 <body>
 
     <h1>ServerMonitor</h1>
@@ -42,6 +46,56 @@
             Received: {{ system_info.network.bytes_recv }} bytes
         </p>
     </section>
+
+    <!-- グラフ -->
+    <section>
+        <h2>CPU・メモリ・ディスク使用率</h2>
+
+        <div style="width: 100%; max-width: 900px;">
+            <canvas id="systemChart"></canvas>
+        </div>
+
+        {{ chart_data|json_script:"chart-data" }}
+    </section>
+
+    <!-- 監視履歴 -->
+    <section>
+        <h2>監視履歴</h2>
+
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>日時</th>
+                    <th>CPU使用率</th>
+                    <th>メモリ使用率</th>
+                    <th>ディスク使用率</th>
+                    <th>送信バイト数</th>
+                    <th>受信バイト数</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in history %}
+                <tr>
+                    <td>{{ item.created_at|date:"Y/m/d H:i:s" }}</td>
+                    <td>{{ item.cpu_usage }}%</td>
+                    <td>{{ item.memory_percent }}%</td>
+                    <td>{{ item.disk_percent }}%</td>
+                    <td>{{ item.bytes_sent }}</td>
+                    <td>{{ item.bytes_recv }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">監視履歴がありません。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'monitor/js/system_chart.js' %}"></script>
 
 </body>
 </html>
