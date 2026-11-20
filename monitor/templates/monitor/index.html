@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'monitor/css/style.css' %}">
     <title>ServerMonitor</title>
 </head>
 
@@ -51,7 +52,7 @@
     <section>
         <h2>CPU・メモリ・ディスク使用率</h2>
 
-        <div style="width: 100%; max-width: 900px;">
+        <div class="chart-container">
             <canvas id="systemChart"></canvas>
         </div>
 
@@ -62,7 +63,7 @@
     <section>
         <h2>監視履歴</h2>
 
-        <table border="1">
+        <table class="history-table">
             <thead>
                 <tr>
                     <th>日時</th>
