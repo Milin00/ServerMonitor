@@ -3,4 +3,5 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('websocket-test/', views.websocket_test, name='websocket_test'),
 ]

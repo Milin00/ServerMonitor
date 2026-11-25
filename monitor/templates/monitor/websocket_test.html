@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+
+    <p id="status">接続中...</p>
+    <pre id="message"></pre>
+
+    <script>
+        const protocol =
+            window.location.protocol === "https:" ? "wss:" : "ws:";
+
+        const socket = new WebSocket(
+            `${protocol}//${window.location.host}/ws/monitor/`
+        );
+
+        const status = document.getElementById("status");
+        const message = document.getElementById("message");
+
+        socket.onopen = () => {
+            status.textContent = "接続成功";
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            message.textContent = JSON.stringify(data, null, 2);
+        };
+
+        socket.onerror = () => {
+            status.textContent = "接続エラー";
+        };
+
+        socket.onclose = () => {
+            status.textContent = "切断";
+        };
+    </script>
+</body>
+</html>

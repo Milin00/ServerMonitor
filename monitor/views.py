@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .system_info import get_system_info
+from .services.system_info import get_system_info
 from .models import SystemMetric
 
 def index(request):
@@ -35,3 +35,6 @@ def index(request):
     }
 
     return render(request, 'monitor/index.html', params)
+
+def websocket_test(request):
+    return render(request, 'monitor/websocket_test.html')
