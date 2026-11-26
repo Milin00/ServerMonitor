@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>System Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>システム監視ダッシュボード</h1>
+
+    <p id="connection-status">WebSocket接続中...</p>
+
+    <section>
+        <h2>CPU使用率</h2>
+        <canvas id="cpuChart"></canvas>
+    </section>
+
+    <section>
+        <h2>メモリ使用率</h2>
+        <canvas id="memoryChart"></canvas>
+    </section>
+
+    <section>
+        <h2>ディスク使用率</h2>
+        <canvas id="diskChart"></canvas>
+    </section>
+
+    <script>
+        console.log("[DEBUG] JavaScript実行開始");
+        const MAX_POINTS = 30;
+
+        function createChart(elementId, label) {
+            return new Chart(document.getElementById(elementId), {
+                type: "line",
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label + " (%)",
+                        data: [],
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        const cpuChart = createChart("cpuChart", "CPU使用率");
+        const memoryChart = createChart("memoryChart", "メモリ使用率");
+        const diskChart = createChart("diskChart", "ディスク使用率");
+
+        function addData(chart, label, value) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(value);
+
+            // 表示データを直近30件に制限
+            if (chart.data.labels.length > MAX_POINTS) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.update("none");
+        }
+
+        // 初期履歴をDBから取得
+        async function loadHistory() {
+            const response = await fetch("/api/metrics/history/");
+
+            if (!response.ok) {
+                throw new Error("履歴の取得に失敗しました");
+            }
+
+            const result = await response.json();
+
+            result.metrics.forEach(metric => {
+                const label = new Date(
+                    metric.created_at
+                ).toLocaleTimeString();
+
+                addData(cpuChart, label, metric.cpu_usage);
+                addData(memoryChart, label, metric.memory_percent);
+                addData(diskChart, label, metric.disk_percent);
+            });
+        }
+
+        // Heartbeat管理
+        let heartbeatTimer = null;
+
+        // WebSocket接続
+        function connectWebSocket() {
+            const protocol =
+                window.location.protocol === "https:" ? "wss:" : "ws:";
+
+            const socket = new WebSocket(
+                `${protocol}//${window.location.host}/ws/monitor/`
+            );
+
+            socket.onopen = () => {
+                document.getElementById("connection-status").textContent =
+                    "接続成功";
+
+                console.log("[WS] 接続成功");
+
+                // 既存のHeartbeatを停止
+                if (heartbeatTimer !== null) {
+                    clearInterval(heartbeatTimer);
+                }
+
+                // 接続直後にHeartbeatを送信
+                sendHeartbeat(socket);
+
+                // 10秒ごとにHeartbeatを送信
+                heartbeatTimer = setInterval(() => {
+                    sendHeartbeat(socket);
+                }, 10000);
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (!data.cpu || !data.memory || !data.disk) {
+                    return;
+                }
+
+                const label = new Date(
+                    data.timestamp
+                ).toLocaleTimeString();
+
+                addData(cpuChart, label, data.cpu.usage);
+                addData(memoryChart, label, data.memory.percent);
+                addData(diskChart, label, data.disk.percent);
+            };
+
+            socket.onclose = () => {
+                // Heartbeat停止
+                if (heartbeatTimer !== null) {
+                    clearInterval(heartbeatTimer);
+                    heartbeatTimer = null;
+                }
+
+                document.getElementById("connection-status").textContent =
+                    "切断：5秒後に再接続します";
+
+                console.log("[WS] 切断");
+
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            socket.onerror = () => {
+                document.getElementById("connection-status").textContent =
+                    "接続エラー";
+            };
+        }
+
+        async function initialize() {
+            try {
+                await loadHistory();
+            } catch (error) {
+                console.error(error);
+            }
+
+            connectWebSocket();
+        }
+
+        initialize();
+
+        function sendHeartbeat(socket) {
+            if (socket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            socket.send(JSON.stringify({
+                type: "heartbeat"
+            }));
+
+            console.log("[HEARTBEAT] 送信");
+        }
+    </script>
+</body>
+</html>

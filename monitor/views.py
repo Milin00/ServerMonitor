@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from .services.system_info import get_system_info
-from .models import SystemMetric
+from monitor.models import SystemMetric
+from django.http import JsonResponse
 
 def index(request):
     #システム情報を取得
@@ -38,3 +39,22 @@ def index(request):
 
 def websocket_test(request):
     return render(request, 'monitor/websocket_test.html')
+
+def metric_history(request):
+    metrics = SystemMetric.objects.order_by("-created_at")[:50]
+
+    data = [
+        {
+            "id": metric.id,
+            "cpu_usage": metric.cpu_usage,
+            "memory_percent": metric.memory_percent,
+            "disk_percent": metric.disk_percent,
+            "created_at": metric.created_at.isoformat(),
+        }
+        for metric in reversed(metrics)
+    ]
+
+    return JsonResponse({"metrics": data})
+
+def dashboard(request):
+    return render(request, "monitor/dashboard.html")

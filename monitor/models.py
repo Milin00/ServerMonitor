@@ -19,12 +19,19 @@ class MonitoringSession(models.Model):
         verbose_name="監視終了日時"
     )
 
+    last_heartbeat = models.DateTimeField(
+    null=True,
+    blank=True,
+    verbose_name="最終生存通知日時"
+    )
+    
     status = models.CharField(
         max_length=10,
         choices=Status.choices,
         default=Status.RUNNING,
         verbose_name="監視状態"
     )
+    
 
     def __str__(self):
         return f"Session #{self.pk} ({self.status})"

@@ -12,32 +12,76 @@
     <pre id="message"></pre>
 
     <script>
-        const protocol =
-            window.location.protocol === "https:" ? "wss:" : "ws:";
-
-        const socket = new WebSocket(
-            `${protocol}//${window.location.host}/ws/monitor/`
-        );
+        let socket = null;
+        let heartbeatTimer = null;
+        let reconnectTimer = null;
 
         const status = document.getElementById("status");
         const message = document.getElementById("message");
 
-        socket.onopen = () => {
-            status.textContent = "接続成功";
-        };
+        function connectWebSocket() {
+            const protocol =
+                window.location.protocol === "https:" ? "wss:" : "ws:";
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            message.textContent = JSON.stringify(data, null, 2);
-        };
+            socket = new WebSocket(
+                `${protocol}//${window.location.host}/ws/monitor/`
+            );
 
-        socket.onerror = () => {
-            status.textContent = "接続エラー";
-        };
+            socket.onopen = () => {
+                status.textContent = "接続成功";
 
-        socket.onclose = () => {
-            status.textContent = "切断";
-        };
+                // ハートビートの二重起動を防止
+                if (heartbeatTimer !== null) {
+                    clearInterval(heartbeatTimer);
+                }
+
+                // 10秒ごとに生存通知を送信
+                heartbeatTimer = setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: "heartbeat"
+                        }));
+                    }
+                }, 10000);
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                message.textContent =
+                    JSON.stringify(data, null, 2);
+            };
+
+            socket.onerror = () => {
+                status.textContent = "接続エラー";
+            };
+
+            socket.onclose = (event) => {
+                if (heartbeatTimer !== null) {
+                    clearInterval(heartbeatTimer);
+                    heartbeatTimer = null;
+                }
+
+                // サーバーによるタイムアウト切断
+                if (event.code === 4000) {
+                    status.textContent = "タイムアウトにより切断されました";
+                    return;
+                }
+
+                // その他の切断は再接続
+                status.textContent = "切断：5秒後に再接続します";
+
+                if (reconnectTimer !== null) {
+                    clearTimeout(reconnectTimer);
+                }
+
+                reconnectTimer = setTimeout(() => {
+                    connectWebSocket();
+                }, 5000);
+            };
+        }
+
+        connectWebSocket();
     </script>
 </body>
 </html>
